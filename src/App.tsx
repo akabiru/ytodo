@@ -1,34 +1,101 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useEffect } from 'react'
+import * as Y from 'yjs'
 import './App.css'
 
+interface TodoItem {
+  id: number
+  text: string
+  completed: boolean
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [todos, setTodos] = useState<TodoItem[]>([])
+  const [newTodoText, setNewTodoText] = useState('')
+  
+  // Initialize Y.js document and shared array
+  const [ydoc] = useState(() => new Y.Doc())
+  const [ytodos] = useState(() => ydoc.getArray<TodoItem>('todos'))
+
+  // Sync Y.js state with React state
+  useEffect(() => {
+    const updateTodos = () => {
+      setTodos(ytodos.toArray())
+    }
+
+    // Initial load
+    updateTodos()
+
+    // Listen for changes
+    ytodos.observe(updateTodos)
+
+    return () => {
+      ytodos.unobserve(updateTodos)
+    }
+  }, [ytodos])
+
+  const addTodo = () => {
+    if (newTodoText.trim()) {
+      const newTodo: TodoItem = {
+        id: Date.now(),
+        text: newTodoText.trim(),
+        completed: false
+      }
+      ytodos.push([newTodo])
+      setNewTodoText('')
+    }
+  }
+
+  const toggleTodo = (id: number) => {
+    const index = ytodos.toArray().findIndex(todo => todo.id === id)
+    if (index !== -1) {
+      const todo = ytodos.get(index)
+      ytodos.delete(index, 1)
+      ytodos.insert(index, [{ ...todo, completed: !todo.completed }])
+    }
+  }
+
+  const deleteTodo = (id: number) => {
+    const index = ytodos.toArray().findIndex(todo => todo.id === id)
+    if (index !== -1) {
+      ytodos.delete(index, 1)
+    }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="todo-app">
+      <h1>Y.js Collaborative Todo App</h1>
+      
+      <div className="add-todo">
+        <input
+          type="text"
+          value={newTodoText}
+          onChange={(e) => setNewTodoText(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+          placeholder="Add a new todo..."
+        />
+        <button onClick={addTodo}>Add</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+
+      <div className="todo-list">
+        {todos.map((todo) => (
+          <div key={todo.id} className="todo-item">
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => toggleTodo(todo.id)}
+            />
+            <span className={todo.completed ? 'completed' : ''}>
+              {todo.text}
+            </span>
+            <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+          </div>
+        ))}
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+
+      <div className="stats">
+        <p>Total: {todos.length} | Completed: {todos.filter(t => t.completed).length}</p>
+      </div>
+    </div>
   )
 }
 
