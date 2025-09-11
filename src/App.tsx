@@ -14,36 +14,47 @@ function App() {
 
   // Sync Y.js state with React state
   useEffect(() => {
+    const observedTodos = new Set<TodoItem>();
+
     const updateTodos = () => {
-      console.log(`Updating todos from Y.js: ${JSON.stringify(ytodos.toJSON())} items`)
-      setTodos(ytodos.toArray())
-    }
+      setTodos(ytodos.toArray());
+    };
 
-    // Observe Y.Array changes (add/delete todos)
-    ytodos.observe(updateTodos)
+    const observeTodo = (todo: TodoItem) => {
+      if (!observedTodos.has(todo)) {
+        todo.observe(updateTodos);
+        observedTodos.add(todo);
+      }
+    };
 
-    // Also observe each individual Y.Map for property changes
-    const observeAllTodos = () => {
-      ytodos.toArray().forEach(todo => {
-        todo.observe(updateTodos) // Listen to each todo's property changes
-      })
-    }
+    const unobserveTodo = (todo: TodoItem) => {
+      if (observedTodos.has(todo)) {
+        todo.unobserve(updateTodos);
+        observedTodos.delete(todo);
+      }
+    };
 
-    // Initial setup
-    updateTodos()
-    observeAllTodos()
+    const handleArrayChange = () => {
+      const currentTodos = ytodos.toArray();
+      currentTodos.forEach(observeTodo);
 
-    // Re-observe when array changes (new todos added)
-    ytodos.observe(observeAllTodos)
+      // Remove observers from todos no longer in the array
+      observedTodos.forEach(todo => {
+        if (!currentTodos.includes(todo)) {
+          unobserveTodo(todo);
+        }
+      });
+
+      updateTodos();
+    };
+
+    ytodos.observe(handleArrayChange);
+    handleArrayChange(); // Initial sync
 
     return () => {
-      ytodos.unobserve(updateTodos)
-      ytodos.unobserve(observeAllTodos)
-      // Clean up individual todo observers
-      ytodos.toArray().forEach(todo => {
-        todo.unobserve(updateTodos)
-      })
-    }
+      ytodos.unobserve(handleArrayChange);
+      observedTodos.forEach(unobserveTodo);
+    };
   }, [ytodos])
 
   const addTodo = () => {
