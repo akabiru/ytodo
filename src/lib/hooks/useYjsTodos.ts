@@ -15,7 +15,7 @@ export function useYjsTodos() {
       setTodos(
         ytodos.toArray().map(todo => ({
           id: todo.get('id'),
-          text: todo.get('text'),
+          text: todo.get('text').toString(),
           completed: todo.get('completed'),
         }))
       );
@@ -24,6 +24,8 @@ export function useYjsTodos() {
     const observeTodo = (todo: Y.Map<any>) => {
       if (!observedTodos.has(todo)) {
         todo.observe(updateTodos);
+        const text = todo.get('text');
+        if (text instanceof Y.Text) text.observe(updateTodos);
         observedTodos.add(todo);
       }
     };
@@ -31,6 +33,8 @@ export function useYjsTodos() {
     const unobserveTodo = (todo: Y.Map<any>) => {
       if (observedTodos.has(todo)) {
         todo.unobserve(updateTodos);
+        const text = todo.get('text');
+        if (text instanceof Y.Text) text.unobserve(updateTodos);
         observedTodos.delete(todo);
       }
     };
@@ -57,10 +61,11 @@ export function useYjsTodos() {
 
   const addTodo = () => {
     if (newTodoText.trim()) {
+      const newTodoYText = new Y.Text(newTodoText.trim()); // collaborative text
       const newTodoMap = new Y.Map();
 
       newTodoMap.set('id', Date.now());
-      newTodoMap.set('text', newTodoText.trim());
+      newTodoMap.set('text', newTodoYText);
       newTodoMap.set('completed', false);
 
       ytodos.push([newTodoMap]);
