@@ -7,6 +7,7 @@ import { useYjsTodos } from './lib/hooks/useYjsTodos';
 function App() {
   const {
     todos,
+    getYTextForTodo,
     addTodo,
     toggleTodo,
     deleteTodo,
@@ -26,6 +27,7 @@ function App() {
         todos={todos}
         onToggle={toggleTodo}
         onDelete={deleteTodo}
+        getYTextForTodo={getYTextForTodo}
       />
       <Stats
         total={todos.length}

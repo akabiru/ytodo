@@ -88,8 +88,14 @@ export function useYjsTodos() {
     }
   };
 
+  const getYTextForTodo = (id: number): Y.Text | null => {
+    const todo = ytodos.toArray().find(todo => todo.get('id') === id);
+    return todo?.get('text') || null;
+  };
+
   return {
     todos,
+    getYTextForTodo,
     addTodo,
     toggleTodo,
     deleteTodo,
